@@ -99,8 +99,15 @@ systemctl enable  systemd-nspawn@debian.service
 # Stop if guest already started
 systemctl stop systemd-nspawn@debian.service
 
-# Start the container
+# Start the guest container
 systemctl start systemd-nspawn@debian.service
+
+machinectl list
+echo 'debug'
+
+# Enable networkd in the container
+sleep 15 # Give guest some time to boot
+machinectl shell debian /bin/bash -c 'systemctl enable systemd-networkd && systemctl start systemd-networkd'
 
 set +x
 
@@ -112,12 +119,11 @@ echo 1. ssh to your host:
 echo ssh root@$HOST_IP
 echo 
 echo 2. Set password and configure /etc/securetty:
+echo systemctl stop systemd-nspawn@debian.service
 echo systemd-nspawn -D /var/lib/machines/debian -U --machine debian passwd
+echo systemctl start systemd-nspawn@debian.service
 echo
-echo 3. Reload systemd \& networkd to get the guest network config:
-echo "machinectl shell debian /bin/bash -c 'systemctl daemon-reload && systemctl restart systemd-networkd'"
-echo
-echo Verify ping from your localhost:
+echo 3. Verify ping from your localhost:
 echo exit
 echo ping -c 3 $FLOATING_IP
 echo

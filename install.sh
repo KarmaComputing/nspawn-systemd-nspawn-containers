@@ -1,7 +1,7 @@
 #!/bin/bash
 
-HOST_IP=
-FLOATING_IP=
+HOST_IP=$1
+FLOATING_IP=$2
 
 scp bootstrap.sh root@$HOST_IP:/root
 
