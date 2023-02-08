@@ -122,7 +122,7 @@ machinectl shell debian /bin/bash -c 'apt install -y openssh-server && mkdir -p 
 ssh-keygen -t ecdsa -f /root/.ssh/id_ecdsa -q -N ""
 HOST_PUBLIC_KEY=$(cat /root/.ssh/id_ecdsa.pub)
 # Add public key to guest authorized_keys
-echo -e $HOST_PUBLIC_KEY >> /var/lib/machines/debian/root/.ssh/authorized_keys
+echo -e "$HOST_PUBLIC_KEY" >> /var/lib/machines/debian/root/.ssh/authorized_keys
 
 
 set +x
@@ -132,7 +132,7 @@ echo Remaining manual steps:
 echo 
 echo "You'll want to ssh to the host now and perform the following:"
 echo 1. ssh to your host: 
-echo ssh root@$HOST_IP
+echo ssh root@"$HOST_IP"
 echo 
 echo 2. Set password and configure /etc/securetty:
 echo systemctl stop systemd-nspawn@debian.service
@@ -141,7 +141,7 @@ echo systemctl start systemd-nspawn@debian.service
 echo
 echo 3. Verify ping from your localhost:
 echo exit
-echo ping -c 3 $FLOATING_IP
+echo ping -c 3 "$FLOATING_IP"
 echo
 echo Trouble? "Directory tree /var/lib/machines/debian is currently busy"?
 echo 4. You may need to stop /start the container:
