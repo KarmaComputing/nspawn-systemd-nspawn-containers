@@ -27,6 +27,12 @@ debootstrap --include=systemd,dbus,traceroute,telnet,curl stable /var/lib/machin
 cat >/etc/systemd/nspawn/debian.nspawn <<EOL
 [Network]
 Bridge=br0
+
+#If you want ephemeral containers,
+# Uncomment below:
+#[Exec]
+#LinkJournal=no
+#Ephemeral=yes
 EOL
 
 cat /etc/systemd/nspawn/debian.nspawn
