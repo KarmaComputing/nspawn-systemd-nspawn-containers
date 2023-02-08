@@ -6,7 +6,7 @@ HOST_IP=$1
 FLOATING_IP=$2
 
 apt update
-apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim  qemu-guest-agent
+apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim python3 qemu-guest-agent
 echo "set mouse=" > ~/.vimrc
 echo 'kernel.unprivileged_userns_clone=1' >/etc/sysctl.d/nspawn.conf
 # allow proxy_arp
@@ -114,6 +114,16 @@ echo 'debug'
 # Enable networkd in the container
 sleep 15 # Give guest some time to boot
 machinectl shell debian /bin/bash -c 'systemctl enable systemd-networkd && systemctl start systemd-networkd'
+
+# Setup bootstrap ssh TODO lean on ephemeral instead
+machinectl shell debian /bin/bash -c 'apt install -y openssh-server && mkdir -p /root/.ssh && touch /root/.ssh/authorized_keys'
+
+# Generate host ssh key
+ssh-keygen -t ecdsa -f /root/.ssh/id_ecdsa -q -N ""
+HOST_PUBLIC_KEY=$(cat /root/.ssh/id_ecdsa.pub)
+# Add public key to guest authorized_keys
+echo -e $HOST_PUBLIC_KEY >> /var/lib/machines/debian/root/.ssh/authorized_keys
+
 
 set +x
 
