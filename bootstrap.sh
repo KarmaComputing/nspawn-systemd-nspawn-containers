@@ -108,12 +108,23 @@ echo "#####################"
 echo Remaining manual steps:
 echo 
 echo "You'll want to ssh to the host now and perform the following:"
-echo - ssh to your host: ssh root@$HOST_IP
-echo - Reload systemd \& networkd to get the guest network config:
-echo machinectl shell debian /bin/bash -c 'systemctl daemon-reload && systemctl restart systemd-networkd'
-
-echo - Set password and configure /etc/securetty:
+echo 1. ssh to your host: 
+echo ssh root@$HOST_IP
+echo 
+echo 2. Set password and configure /etc/securetty:
 echo systemd-nspawn -D /var/lib/machines/debian -U --machine debian passwd
+echo
+echo 3. Reload systemd \& networkd to get the guest network config:
+echo "machinectl shell debian /bin/bash -c 'systemctl daemon-reload && systemctl restart systemd-networkd'"
+echo
+echo Verify ping from your localhost:
+echo exit
+echo ping -c 3 $FLOATING_IP
+echo
+echo Trouble? "Directory tree /var/lib/machines/debian is currently busy"?
+echo 4. You may need to stop /start the container:
+echo systemctl stop systemd-nspawn@debian.service
+echo systemctl start systemd-nspawn@debian.service
 echo "#####################"
 
 
