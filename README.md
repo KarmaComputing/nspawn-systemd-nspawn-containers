@@ -11,6 +11,7 @@ See associated [nspawn blog tutorial for background](https://blog.karmacomputing
 
 ```
 ./install.sh
+# Follow instructions from script output at the end.
 ```
 
 (Read the above blog)
