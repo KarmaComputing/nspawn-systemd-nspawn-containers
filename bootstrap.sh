@@ -6,7 +6,7 @@ HOST_IP=$1
 FLOATING_IP=$2
 
 apt update
-apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim python3 python3-venv qemu-guest-agent
+apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim python3 tcpdump python3-venv qemu-guest-agent
 echo "set mouse=" > ~/.vimrc
 echo 'kernel.unprivileged_userns_clone=1' >/etc/sysctl.d/nspawn.conf
 # allow proxy_arp
