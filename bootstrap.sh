@@ -4,6 +4,10 @@ set -xu
 
 HOST_IP=$1
 FLOATING_IP=$2
+# IPv6_MODE (optional) The plain string "ipv6". Example: ipv6
+IPv6_MODE="${2:-default}"
+# IPv6_HOST_ADDR An IPv6 address with mask. Example: 2a01:4f9:c010:9f30::1/64
+IPv6_HOST_ADDR="${3:-default}"
 
 apt update
 apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim python3 tcpdump python3-venv qemu-guest-agent
@@ -12,10 +16,17 @@ echo 'kernel.unprivileged_userns_clone=1' >/etc/sysctl.d/nspawn.conf
 # allow proxy_arp
 echo "net.ipv4.conf.eth0.proxy_arp=1" >> /etc/sysctl.conf
 
-# Permit ip forwarding
-
+# Permit IPv4 forwarding
 sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf  | grep 'forward'
 echo 1 > /proc/sys/net/ipv4/ip_forward
+
+
+# Permit IPv6 forwarding
+sed -i 's/#net.ipv6.conf.all.forwarding=1/net.ipv6.conf.all.forwarding=1/g' /etc/sysctl.conf
+
+echo net.ipv6.conf.all.proxy_ndp = 1 >> /etc/sysctl.conf
+
+# Reload sysctl
 sysctl -p
 
 mkdir -p /etc/systemd/nspawn
@@ -54,7 +65,27 @@ iface eth0 inet static
   pointtopoint 172.31.1.1
   gateway 172.31.1.1
   dns-nameservers 185.12.64.1 185.12.64.2
+EOL
 
+
+if [ "$IPv6_MODE" == 'ipv6' ]; then
+
+cat >>/etc/network/interfaces <<EOL
+#Bridge setup
+auto br0
+iface br0 inet static
+   bridge_ports none
+   bridge_stp off
+   bridge_fd 1
+   pre-up brctl addbr br0
+   address $HOST_IP
+   netmask 255.255.255.255
+   dns-nameservers 185.12.64.1 185.12.64.2
+EOL
+
+else
+
+cat >>/etc/network/interfaces <<EOL
 #Bridge setup
 auto br0
 iface br0 inet static
@@ -69,10 +100,46 @@ iface br0 inet static
    dns-nameservers 185.12.64.1 185.12.64.2
 EOL
 
+fi
+
+# Configure IPv6 host interface
+if [ "$IPv6_MODE" == 'ipv6' ]; then
+
+cat >>/etc/network/interfaces <<EOL
+iface eth0 inet6 static
+   address $IPv6_HOST_ADDR
+   dns-nameservers 2a01:4ff:ff00::add:1 2a01:4ff:ff00::add:2
+   gateway fe80::1
+EOL
+
+fi
+
+
 ip link set dev eth0 up
 ifup br0
 
 # Make network configuration static
+if [ "$IPv6_MODE" == 'ipv6' ]; then
+cat >/var/lib/machines/debian/etc/systemd/network/80-container-host0.network <<EOL
+[Match]
+Virtualization=container
+Name=host0
+
+[Network]
+# Yout floating IP
+Address=changemeToTheSeccondAvailableIPv6Address/128
+DHCP=no
+
+
+[Route]
+Destination=changeMeToTheFirstIPv6Address/128
+
+[Route]
+Gateway=changeMeToTheFirstIPv6Address
+Destination=::/0
+EOL
+
+else
 cat >/var/lib/machines/debian/etc/systemd/network/80-container-host0.network <<EOL
 [Match]
 Virtualization=container
@@ -95,6 +162,8 @@ GatewayOnLink=yes
 [DHCP]
 UseTimezone=yes
 EOL
+
+fi
 
 
 
@@ -185,7 +254,7 @@ echo access your guest remotely over ssh.
 echo "If you want to do that, then you'll have to add your"
 echo localhost\'s public ssh key to the authorized_keys file
 echo on your guest.
-echo ssh access from your host $HOST_IP to your guest has
+echo ssh access from your host "$HOST_IP" to your guest has
 echo "already been setup (see above)."
 echo
 echo "#####################"
