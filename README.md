@@ -7,6 +7,18 @@ See associated [nspawn blog tutorial for background](https://blog.karmacomputing
 # Usage
 (Read the above blog)
 
+## Step day 0, create a Linux host with debian 11 as the base image
+
+Setup `.env`
+
+```
+cp .env.example .env
+```
+Run to create a new node:
+```
+./new-node.sh
+```
+
 1. Set `HOST_IP` and `FLOATING_IP` in `install.sh`
 2. Run `install.sh $HOST_IP $FLOATING_IP`
 
@@ -32,6 +44,7 @@ manually after install:
 
 (On the host- not the guest):
 ```
+ip route add 2a01:4f9:c010:9f30::2/128 dev br0
 ip -6 nei show proxy # will be empty
 ip neigh add proxy 2a01:4f9:c010:9f30::1 dev br0
 ip -6 nei show proxy
