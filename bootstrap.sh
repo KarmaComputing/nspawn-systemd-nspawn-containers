@@ -8,8 +8,19 @@ FLOATING_IP=$2
 IPv6_MODE="${2:-default}"
 # IPv6_HOST_ADDR An IPv6 address with mask. Example: 2a01:4f9:c010:9f30::1/64
 IPv6_HOST_ADDR="${3:-default}"
+# Remove /64 mask from IPv6_HOST_ADDR
+# See https://www.shellcheck.net/wiki/SC2001
+IPv6_HOST_ADDR_WITHOUT_MASK=$(echo "${IPv6_HOST_ADDR/\/64/}")
 
+echo The IPv6_HOST_ADDR_WITHOUT_MASK is $IPv6_HOST_ADDR_WITHOUT_MASK
 apt update
+apt install -y python3
+
+# Determin seccond (n) IPv6 address, and without mask
+IPv6_HOST_ADDR_2=$(echo -e "from ipaddress import ip_address, IPv6Network\nimport itertools\nip = IPv6Network('$IPv6_HOST_ADDR', strict=False)\nseccondAddress = next(itertools.islice(ip, 2, None))\nprint(seccondAddress)" | python3)
+
+echo The determind IPv6_HOST_ADDR_2 is: $IPv6_HOST_ADDR_2
+
 apt install -y systemd-container debootstrap bridge-utils tmux telnet traceroute vim python3 tcpdump python3-venv qemu-guest-agent
 echo "set mouse=" > ~/.vimrc
 echo 'kernel.unprivileged_userns_clone=1' >/etc/sysctl.d/nspawn.conf
@@ -127,15 +138,15 @@ Name=host0
 
 [Network]
 # Yout floating IP
-Address=changemeToTheSeccondAvailableIPv6Address/128
+Address=$IPv6_HOST_ADDR_2/128
 DHCP=no
 
 
 [Route]
-Destination=changeMeToTheFirstIPv6Address/128
+Destination=$IPv6_HOST_ADDR_WITHOUT_MASK/128
 
 [Route]
-Gateway=changeMeToTheFirstIPv6Address
+Gateway=$IPv6_HOST_ADDR_WITHOUT_MASK
 Destination=::/0
 EOL
 
@@ -167,6 +178,7 @@ fi
 
 
 
+
 # Enable (but don't start) the container
 systemctl enable  systemd-nspawn@debian.service
 
@@ -176,6 +188,15 @@ systemctl stop systemd-nspawn@debian.service
 
 # Start the guest container
 systemctl start systemd-nspawn@debian.service
+
+# Add route on host to nspawn IPv6 host TODO use systemd-networkd on host
+ip route add $IPv6_HOST_ADDR_2/128 dev br0
+
+# Add IPv6 proxy for NDP (like roxy_arp but for IPv6)
+echo Initially show proxy will be empy
+ip -6 nei show proxy
+ip nei add proxy $IPv6_HOST_ADDR_WITHOUT_MASK dev br0
+ip -6 nei show proxy
 
 machinectl list
 echo 'debug'
@@ -257,6 +278,8 @@ echo on your guest.
 echo ssh access from your host "$HOST_IP" to your guest has
 echo "already been setup (see above)."
 echo
+echo Your IPv6 host address is: $IPv6_HOST_ADDR_WITHOUT_MASK
+echo Your first IPv6 nspawn container address is: $IPv6_HOST_ADDR_2
 echo "#####################"
 
 
